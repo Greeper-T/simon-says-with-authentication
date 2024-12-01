@@ -30,7 +30,7 @@ const LeaderboardScreen = ({ navigation }) => {
                 const userIndex = leaderboardData.findIndex((user) => user.id === currentUser.uid);
                 setUserRank(userIndex !== -1 ? userIndex + 1 : null);
             } catch (error) {
-                Alert.alert('Error', 'Failed to load leaderboard');
+                
             }
         };
 
