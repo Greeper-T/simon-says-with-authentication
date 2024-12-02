@@ -14,14 +14,19 @@ const GameScreen = ({ navigation }) => {
 
   const userSequenceRef = useRef(userSequence); 
   const sequenceRef = useRef(sequence);
+  const lastTiltTime = useRef(Date.now());
 
   const actions = [
     'Swipe Up', 'Swipe Down', 'Swipe Left', 'Swipe Right',
-    'Pinch In', 'Pinch Out'
+    'Pinch In', 'Pinch Out', 'Tilt Up', 'Tilt Down'
   ];
-//, 'Tilt Up', 'Tilt Down', 'Tilt Left', 'Tilt Right'
+//, 'Tilt Left', 'Tilt Right'
   const startGame = () => {
-    setUserSequence([]);  // Reset user sequence at the start of a new game
+    setUserSequence([]);
+    userSequenceRef.current = []  // Reset user sequence at the start of a new game
+    console.log("Type of userSequenceRef.current: ", typeof userSequenceRef.current);
+console.log("Is Array: ", Array.isArray(userSequenceRef.current));
+
     const initialAction = generateUniqueAction();
     setSequence([initialAction]);  // Set the initial sequence
     sequenceRef.current = [initialAction];
@@ -47,6 +52,9 @@ const GameScreen = ({ navigation }) => {
         setTimeout(() => {
           setIsUserTurn(true);  // Now set the user's turn after the sequence is displayed
           setCurrentAction("Your Turn");
+          setUserSequence([]);
+          userSequenceRef.current = [];
+          console.log("turn fgsdfgiadufg: ", userSequenceRef)
         }, 500);  // Add a small delay to make sure "Your Turn" shows after sequence
       }
     }, 1000); // Delay between each action in the sequence
@@ -54,13 +62,18 @@ const GameScreen = ({ navigation }) => {
   
   const handleUserAction = (action) => {
     if (!isUserTurn) return;
+    console.log(userSequenceRef.current[userSequenceRef.length-1], action)
+    if (userSequenceRef.current[userSequenceRef.current.length-1] === action) return;
 
     setLastAttemptedAction(action);
-
-    if (action === sequenceRef.current[userSequenceRef.current.length]) {
+    console.log(userSequenceRef.current.length, sequenceRef.current[userSequenceRef.current.length])
+    if (action == sequenceRef.current[userSequenceRef.current.length]) {
+      console.log(sequenceRef.current)
       setUserSequence(prev => {
         const newSequence = [...prev, action];
+        console.log("correct: ", userSequenceRef.current.length)
         userSequenceRef.current = newSequence;
+        console.log("correct: ", userSequenceRef.current.length)
         return newSequence;
       });
 
@@ -77,6 +90,7 @@ const GameScreen = ({ navigation }) => {
         displaySequence([...sequenceRef.current, nextAction]);
       }
     } else {
+      console.log(userSequenceRef, sequenceRef)
       endGame();
     }
   };
@@ -104,12 +118,26 @@ const GameScreen = ({ navigation }) => {
   };
 
   const handleTiltAction = (data) => {
-    const { x, y, z } = data;
+    const { x, y } = data; // Use x and y for detecting tilts
+    const now = Date.now();
+  
+    // Minimum time interval (e.g., 500ms) between tilt actions
+    if (now - lastTiltTime.current < 500) {
+      return;
+    }
+  
+    // Detect tilts based on thresholds
     if (isUserTurn) {
-      if (y > 0.5) handleUserAction('Tilt Up');
-      else if (y < -0.5) handleUserAction('Tilt Down');
-      else if (x < -0.5) handleUserAction('Tilt Left');
-      else if (x > 0.5) handleUserAction('Tilt Right');
+      if (y > 0.5) {
+        handleUserAction('Tilt Up');
+      } else if (y < -0.5) {
+        handleUserAction('Tilt Down');
+      } else if (x < -0.5) {
+        handleUserAction('Tilt Left');
+      } else if (x > 0.5) {
+        handleUserAction('Tilt Right');
+      }
+      lastTiltTime.current = now; // Update the timestamp after handling an action
     }
   };
 
@@ -122,12 +150,13 @@ const GameScreen = ({ navigation }) => {
 
   useEffect(() => {
     const accelerometerSubscription = Accelerometer.addListener(accelerometerData => {
-      handleTiltAction(accelerometerData);
+handleTiltAction(accelerometerData);
+      
     });
     return () => {
       accelerometerSubscription.remove();
     };
-  }, [userSequence]);
+  }, [isUserTurn, userSequence]);
 
   useEffect(() => {
     startGame();
